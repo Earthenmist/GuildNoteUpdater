@@ -37,6 +37,7 @@ local function UpdateGuildNotes()
 
     local noteType = GuildNotesUpdaterDB.updateOfficerNote and "Officer" or "Public"
     local defaultNote = GuildNotesUpdaterDB.defaultNote
+    local notesUpdated = 0 -- ✅ Track if any updates were made
 
     for i = 1, GetNumGuildMembers() do
         local name, _, _, _, _, _, publicNote, officerNote = GetGuildRosterInfo(i)
@@ -46,6 +47,7 @@ local function UpdateGuildNotes()
                 if CanEditOfficerNote() then
                     GuildRosterSetOfficerNote(i, defaultNote)
                     print("|cff00ff00[GuildNotesUpdater]|r Updated Officer Note for " .. name)
+                    notesUpdated = notesUpdated + 1 -- ✅ Count the update
                 else
                     print("|cffff0000[GuildNotesUpdater]|r Cannot edit officer notes.")
                     break
@@ -56,6 +58,7 @@ local function UpdateGuildNotes()
                 if CanEditPublicNote() then
                     GuildRosterSetPublicNote(i, defaultNote)
                     print("|cff00ff00[GuildNotesUpdater]|r Updated Public Note for " .. name)
+                    notesUpdated = notesUpdated + 1 -- ✅ Count the update
                 else
                     print("|cffff0000[GuildNotesUpdater]|r Cannot edit public notes.")
                     break
@@ -64,7 +67,10 @@ local function UpdateGuildNotes()
         end
     end
 
-    print("|cff00ff00[GuildNotesUpdater]|r Guild note update complete!")
+    -- ✅ Only print this if at least one note was updated
+    if notesUpdated > 0 then
+        print("|cff00ff00[GuildNotesUpdater]|r Guild note update complete! (" .. notesUpdated .. " notes updated)")
+    end
 end
 
 -- ✅ Auto-Update Timer Logic (Runs Only If Enabled)
