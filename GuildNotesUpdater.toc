@@ -1,7 +1,7 @@
 ## Interface: 110007
 ## Title: Guild Notes Updater
 ## Author: Earthenmist-Anachronos
-## Version: 1.01
+## Version: 1.02
 ## Notes: Automatically updates blank guild notes with standard text.
 ## Dependencies: 
 ## SavedVariables: GuildNotesUpdaterDB
