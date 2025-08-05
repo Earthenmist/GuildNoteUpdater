@@ -1,7 +1,7 @@
-## Interface: 110107
+## Interface: 110107, 110200
 ## Title: Guild Notes Updater
 ## Author: Earthenmist-Anachronos
-## Version: 1.05
+## Version: 1.06
 ## Notes: Automatically updates blank guild notes with standard text.
 ## Dependencies: 
 ## SavedVariables: GuildNotesUpdaterDB
@@ -13,4 +13,5 @@ libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
 libs\LibStub\LibStub.lua
 
 GuildNotesUpdater.lua
+
 
