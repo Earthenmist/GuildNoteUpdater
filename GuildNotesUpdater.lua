@@ -1,5 +1,8 @@
-local addonName = "GuildNotesUpdater"
+local addonName = ...
 local frame = CreateFrame("Frame")
+-- Forward declarations so options panel sees these as upvalues
+local LDB, LDBIcon
+
 
 -- ================================
 -- Defaults (expanded for Midnight)
@@ -143,6 +146,29 @@ local function StartAutoUpdate()
 end
 
 -- ================================
+-- Manual runner: refresh roster, then run (respects pauseInInstances)
+-- ================================
+
+local function RunGuildNotesManual()
+    -- Respect pause rule
+    if GuildNotesUpdaterDB.pauseInInstances and IsInAnyInstance() then
+        GNU_Print("|cffff0000[GuildNotesUpdater]|r Manual run not allowed while in an instance (restricted feature).", true)
+        return
+    end
+
+    if not IsInGuild() then
+        GNU_Print("|cffff0000[GuildNotesUpdater]|r You are not in a guild.", true)
+        return
+    end
+
+    C_GuildInfo.GuildRoster()
+    C_Timer.After(0.6, function()
+        UpdateGuildNotes()
+    end)
+end
+
+
+-- ================================
 -- Retail Settings Panel (Blizzard Options)
 -- ================================
 local optionsPanel, optionsCategory
@@ -222,6 +248,31 @@ local function CreateOptionsPanel()
     muteCheck:SetPoint("TOPLEFT", pauseCheck, "BOTTOMLEFT", 0, -6)
     muteCheck:SetChecked(GuildNotesUpdaterDB.muteInInstances)
 
+-- Show Minimap Button
+local minimapCheck = CreateFrame("CheckButton", nil, optionsPanel, "UICheckButtonTemplate")
+minimapCheck.text:SetText("Show Minimap Button")
+minimapCheck:SetPoint("TOPLEFT", muteCheck, "BOTTOMLEFT", 0, -6)
+minimapCheck:SetChecked(not GuildNotesUpdaterDB.minimap.hide)
+
+minimapCheck:SetScript("OnClick", function(self)
+    local show = self:GetChecked()
+    GuildNotesUpdaterDB.minimap.hide = not show
+    if show then
+        if LDBIcon then LDBIcon:Show("GuildNotesUpdater") else GNU_Print("|cffff0000[GuildNotesUpdater]|r Minimap library not available on this client.", true) end
+        GNU_Print("|cff00ff00[GuildNotesUpdater]|r Minimap button shown.", true)
+    else
+        if LDBIcon then LDBIcon:Hide("GuildNotesUpdater") else GNU_Print("|cffff0000[GuildNotesUpdater]|r Minimap library not available on this client.", true) end
+        GNU_Print("|cffff0000[GuildNotesUpdater]|r Minimap button hidden.", true)
+    end
+end)
+
+-- Disable if the lib isn't available
+if not LDBIcon then
+    minimapCheck:Disable()
+    minimapCheck.text:SetText("Show Minimap Button (unavailable on this client)")
+end
+
+
     -- Apply/Save style: Settings panel auto-saves when changed; we'll save on focus lost / clicks
     editBox:SetScript("OnEditFocusLost", function()
         GuildNotesUpdaterDB.defaultNote = editBox:GetText()
@@ -243,7 +294,23 @@ local function CreateOptionsPanel()
 
     -- Status line
     local status = optionsPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    status:SetPoint("TOPLEFT", muteCheck, "BOTTOMLEFT", 4, -12)
+    status:SetPoint("TOPLEFT", minimapCheck, "BOTTOMLEFT", 4, -12)
+
+-- "Run Now" button
+local runBtn = CreateFrame("Button", nil, optionsPanel, "UIPanelButtonTemplate")
+runBtn:SetSize(120, 24)
+runBtn:SetPoint("TOPLEFT", status, "BOTTOMLEFT", -4, -10)
+runBtn:SetText("Run Now")
+runBtn:SetScript("OnClick", RunGuildNotesManual)
+
+runBtn:HookScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+    GameTooltip:AddLine("Run an immediate pass now", 1, 1, 1)
+    GameTooltip:AddLine("Unavailable while in an instance", 0.9, 0.9, 0.9)
+    GameTooltip:Show()
+end)
+runBtn:HookScript("OnLeave", function() GameTooltip:Hide() end)
+
     local function RefreshStatus()
         local active = GuildNotesUpdaterDB.autoUpdateEnabled and not (GuildNotesUpdaterDB.pauseInInstances and IsInAnyInstance())
         status:SetText("Status: " .. (active and "|cff20ff20Active|r" or "|cffff4040Paused|r"))
@@ -264,10 +331,10 @@ end
 -- ================================
 -- Minimap button (LDB / DBIcon)
 -- ================================
-local LDB = LibStub:GetLibrary("LibDataBroker-1.1")
-local LDBIcon = LibStub("LibDBIcon-1.0")
+LDB = LibStub and LibStub:GetLibrary("LibDataBroker-1.1", true)
+LDBIcon = LibStub and LibStub("LibDBIcon-1.0", true)
 
-local GuildNotesUpdaterLDB = LDB:NewDataObject("GuildNotesUpdater", {
+local GuildNotesUpdaterLDB = LDB and LDB:NewDataObject("GuildNotesUpdater", {
     type = "launcher",
     text = "Guild Note Updater",
     icon = "Interface\\Icons\\INV_Scroll_11",
@@ -277,10 +344,10 @@ local GuildNotesUpdaterLDB = LDB:NewDataObject("GuildNotesUpdater", {
         elseif button == "RightButton" then
             GuildNotesUpdaterDB.minimap.hide = not GuildNotesUpdaterDB.minimap.hide
             if GuildNotesUpdaterDB.minimap.hide then
-                LDBIcon:Hide("GuildNotesUpdater")
+                if LDBIcon then LDBIcon:Hide("GuildNotesUpdater") else GNU_Print("|cffff0000[GuildNotesUpdater]|r Minimap library not available on this client.", true) end
                 GNU_Print("|cffFF0000[GuildNotesUpdater]|r Minimap button hidden. Type |cffffff00/gnotes minimap|r to show it again.", true)
             else
-                LDBIcon:Show("GuildNotesUpdater")
+                if LDBIcon then LDBIcon:Show("GuildNotesUpdater") else GNU_Print("|cffff0000[GuildNotesUpdater]|r Minimap library not available on this client.", true) end
                 GNU_Print("|cff00ff00[GuildNotesUpdater]|r Minimap button shown.", true)
             end
         end
@@ -303,9 +370,13 @@ frame:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 == addonName then
         EnsureSavedVariables()
 
-        LDBIcon:Register("GuildNotesUpdater", GuildNotesUpdaterLDB, GuildNotesUpdaterDB.minimap)
+        if LDBIcon and GuildNotesUpdaterLDB then
+            LDBIcon:Register("GuildNotesUpdater", GuildNotesUpdaterLDB, GuildNotesUpdaterDB.minimap)
+        else
+            GNU_Print("|cffff0000[GuildNotesUpdater]|r Minimap icon unavailable (missing LDB/LDBIcon).", true)
+        end
         if GuildNotesUpdaterDB.minimap.hide then
-            LDBIcon:Hide("GuildNotesUpdater")
+            if LDBIcon then if LDBIcon then LDBIcon:Hide("GuildNotesUpdater") else GNU_Print("|cffff0000[GuildNotesUpdater]|r Minimap library not available on this client.", true) end end
         end
 
         SLASH_GUILDNOTE1 = "/guildnotes"
@@ -315,10 +386,10 @@ frame:SetScript("OnEvent", function(self, event, arg1)
             if msg == "minimap" then
                 GuildNotesUpdaterDB.minimap.hide = not GuildNotesUpdaterDB.minimap.hide
                 if GuildNotesUpdaterDB.minimap.hide then
-                    LDBIcon:Hide("GuildNotesUpdater")
+                    if LDBIcon then LDBIcon:Hide("GuildNotesUpdater") else GNU_Print("|cffff0000[GuildNotesUpdater]|r Minimap library not available on this client.", true) end
                     GNU_Print("|cffFF0000[GuildNotesUpdater]|r Minimap button hidden. Type |cffffff00/gnotes minimap|r to show it again.", true)
                 else
-                    LDBIcon:Show("GuildNotesUpdater")
+                    if LDBIcon then LDBIcon:Show("GuildNotesUpdater") else GNU_Print("|cffff0000[GuildNotesUpdater]|r Minimap library not available on this client.", true) end
                     GNU_Print("|cff00ff00[GuildNotesUpdater]|r Minimap button shown.", true)
                 end
             elseif msg == "auto" then
@@ -331,6 +402,10 @@ frame:SetScript("OnEvent", function(self, event, arg1)
                 GNU_Print("|cff00ff00[GuildNotesUpdater]|r Pause in instances: " ..
                     (GuildNotesUpdaterDB.pauseInInstances and "ON" or "OFF"), true)
                 StartAutoUpdate()
+elseif msg == "run" or msg == "now" then
+    RunGuildNotesManual()
+    GNU_Print("|cff00ff00[GuildNotesUpdater]|r Manual run started...", true)
+
             elseif msg == "mute" then
                 GuildNotesUpdaterDB.muteInInstances = not GuildNotesUpdaterDB.muteInInstances
                 GNU_Print("|cff00ff00[GuildNotesUpdater]|r Mute in instances: " ..
