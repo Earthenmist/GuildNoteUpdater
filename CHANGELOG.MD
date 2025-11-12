@@ -1,17 +1,20 @@
-📜 Changelog - Version 1.10  
+📜 Changelog – Version 1.20-Beta  
   
-📅 Release Date: 04-10-2025  
+📅 Release Date: 12-11-2025  
   
-🛠️ Changes & Improvements:  
+🛠️ Changes & Improvements  
   
-✅ Moved Settings into Blizzard Addon Settings  
-✅ Updated the Interface to support 11.2.5 on release  
-✅ Pauses auto-updates in instances/raids by default  
-✅ Mutes all addon chat prints in instances/raids by default  
-✅ Auto-update ticker now stops when you zone into an instance and resumes when you leave.  
-✅ All printing is routed through a helper (GNU_Print) that respects the mute rule.  
-✅ Adds two new toggles in the settings window: “Pause Auto-Update in Instances” and “Mute Chat Prints in Instances.”  
+✅ Added Run Now button to manually trigger guild note updates from the settings panel.  
+✅ Added Show Minimap Button checkbox in settings for easier control (no need for slash commands).  
+✅ Fixed Lua error when using the minimap toggle if LibDBIcon is missing (now safely handled).  
+✅ Improved startup logic for Midnight Beta builds — now works even when libraries load differently.  
+✅ Settings panel and slash commands now use consistent feedback messages.  
+✅ General stability and compatibility improvements for Midnight Beta clients.  
   
-⚠️ Known Issues / Notes:  
+⚠️ Known Issues / Notes  
   
-🚀 Thank you for using Mythic Dungeon Teleports! If you encounter any issues, please report them via our Discord 🚀  
+🔸 The minimap icon option will be disabled automatically if the LibDBIcon library is not available on your client.  
+🔸 Auto-update remains paused inside instances by default; manual runs are not allowed there.  
+🔸 Future versions will introduce localization support and further Midnight UI refinements.  
+  
+🚀 Thank you for using Guild Notes Updater! If you encounter issues or have feature requests, please share them via our Discord. 🚀  
