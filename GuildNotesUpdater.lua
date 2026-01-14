@@ -121,6 +121,15 @@ end
 local function StartAutoUpdate()
     StopAutoUpdate()
 
+    -- Guild required for any auto-update functionality
+    if not IsInGuild() then
+        if GuildNotesUpdaterDB.autoUpdateEnabled then
+            GuildNotesUpdaterDB.autoUpdateEnabled = false
+        end
+        GNU_Print("|cffff0000[GuildNotesUpdater]|r Auto-Update requires being in a guild.")
+        return
+    end
+
     if not GuildNotesUpdaterDB.autoUpdateEnabled then
         GNU_Print("|cffff0000[GuildNotesUpdater]|r Auto-Update Disabled.")
         return
@@ -281,6 +290,15 @@ end
         GuildNotesUpdaterDB.updateOfficerNote = self:GetChecked()
     end)
     autoCheck:SetScript("OnClick", function(self)
+        if not IsInGuild() then
+            -- Hard block: cannot enable while unguilded
+            GuildNotesUpdaterDB.autoUpdateEnabled = false
+            self:SetChecked(false)
+            GNU_Print("|cffff0000[GuildNotesUpdater]|r You must be in a guild to enable Auto-Update.", true)
+            StopAutoUpdate()
+            return
+        end
+
         GuildNotesUpdaterDB.autoUpdateEnabled = self:GetChecked()
         StartAutoUpdate()
     end)
@@ -311,7 +329,47 @@ runBtn:HookScript("OnEnter", function(self)
 end)
 runBtn:HookScript("OnLeave", function() GameTooltip:Hide() end)
 
+    -- Guild-gated controls (Auto-Update + Run Now)
+    local function RefreshGuildLock()
+        local inGuild = IsInGuild()
+
+        if not inGuild then
+            -- Force-disable auto update when leaving a guild
+            if GuildNotesUpdaterDB.autoUpdateEnabled then
+                GuildNotesUpdaterDB.autoUpdateEnabled = false
+                StopAutoUpdate()
+            end
+
+            autoCheck:SetChecked(false)
+            autoCheck:Disable()
+            if autoCheck.text then
+                autoCheck.text:SetText("Enable Auto-Update (requires guild)")
+            end
+            autoCheck.text:SetTextColor(0.6, 0.6, 0.6)
+
+            runBtn:Disable()
+            runBtn:SetAlpha(0.5)
+        else
+            autoCheck:Enable()
+            if autoCheck.text then
+                autoCheck.text:SetText("Enable Auto-Update")
+            end
+            autoCheck.text:SetTextColor(1, 1, 1)
+            autoCheck:SetChecked(GuildNotesUpdaterDB.autoUpdateEnabled)
+
+            runBtn:Enable()
+            runBtn:SetAlpha(1)
+        end
+    end
+
     local function RefreshStatus()
+        RefreshGuildLock()
+
+        if not IsInGuild() then
+            status:SetText("Status: |cffff4040Not in a guild|r")
+            return
+        end
+
         local active = GuildNotesUpdaterDB.autoUpdateEnabled and not (GuildNotesUpdaterDB.pauseInInstances and IsInAnyInstance())
         status:SetText("Status: " .. (active and "|cff20ff20Active|r" or "|cffff4040Paused|r"))
     end
@@ -365,6 +423,7 @@ local GuildNotesUpdaterLDB = LDB and LDB:NewDataObject("GuildNotesUpdater", {
 frame:RegisterEvent("ADDON_LOADED")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 frame:RegisterEvent("ZONE_CHANGED_NEW_AREA") -- detect instance transitions reliably
+frame:RegisterEvent("PLAYER_GUILD_UPDATE")   -- detect guild join/leave changes
 
 frame:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 == addonName then
@@ -393,6 +452,13 @@ frame:SetScript("OnEvent", function(self, event, arg1)
                     GNU_Print("|cff00ff00[GuildNotesUpdater]|r Minimap button shown.", true)
                 end
             elseif msg == "auto" then
+                if not IsInGuild() then
+                    GuildNotesUpdaterDB.autoUpdateEnabled = false
+                    StopAutoUpdate()
+                    GNU_Print("|cffff0000[GuildNotesUpdater]|r You must be in a guild to enable Auto-Update.", true)
+                    return
+                end
+
                 GuildNotesUpdaterDB.autoUpdateEnabled = not GuildNotesUpdaterDB.autoUpdateEnabled
                 StartAutoUpdate()
                 GNU_Print("|cff00ff00[GuildNotesUpdater]|r Auto-Update is now " ..
@@ -413,6 +479,14 @@ elseif msg == "run" or msg == "now" then
             else
                 OpenOptions()
             end
+        end
+
+    elseif event == "PLAYER_GUILD_UPDATE" then
+        -- If we become unguilded, force-disable auto-update and stop any ticker
+        if not IsInGuild() and GuildNotesUpdaterDB.autoUpdateEnabled then
+            GuildNotesUpdaterDB.autoUpdateEnabled = false
+            StopAutoUpdate()
+            GNU_Print("|cffff0000[GuildNotesUpdater]|r Auto-Update disabled (not in a guild).", true)
         end
 
     elseif event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA" then
