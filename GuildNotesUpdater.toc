@@ -1,7 +1,7 @@
-## Interface: 120000
+## Interface: 110207, 120000, 120001
 ## Title: Guild Notes Updater
 ## Author: Lanni Alonsus
-## Version: 1.20-Beta
+## Version: 1.21
 ## X-Wago-ID: L6JDxQGv
 ## Notes: Automatically updates blank guild notes with standard text.
 ## Dependencies: 
@@ -14,9 +14,3 @@ libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
 libs\LibStub\LibStub.lua
 
 GuildNotesUpdater.lua
-
-
-
-
-
-
