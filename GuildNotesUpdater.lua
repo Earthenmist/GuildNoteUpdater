@@ -111,39 +111,104 @@ end
 -- Auto update ticker with instance-awareness
 -- ================================
 local autoUpdateTimer
+local autoUpdateIntervalSeconds -- tracks active ticker interval so we can avoid needless restarts
+local autoUpdateState = "stopped" -- "stopped" | "running" | "paused"
+local hasCompletedInitialLogin = false -- becomes true after the first PLAYER_ENTERING_WORLD
+-- IsInGuild() can briefly return false during zoning/loading; don't treat that as a real unguild.
+local guildUnguildedConfirmed = false
+
 local function StopAutoUpdate()
     if autoUpdateTimer then
         autoUpdateTimer:Cancel()
         autoUpdateTimer = nil
     end
+    autoUpdateIntervalSeconds = nil
+    if autoUpdateState == "running" then
+        autoUpdateState = "stopped"
+    end
 end
 
-local function StartAutoUpdate()
+local function ConfirmUnguilded()
+    C_Timer.After(2.0, function()
+        if not IsInGuild() then
+            guildUnguildedConfirmed = true
+            -- If the user had auto-update enabled, force-disable once we are sure.
+            if GuildNotesUpdaterDB and GuildNotesUpdaterDB.autoUpdateEnabled then
+                GuildNotesUpdaterDB.autoUpdateEnabled = false
+                StopAutoUpdate()
+                GNU_Print("|cffff0000[GuildNotesUpdater]|r Auto-Update disabled (not in a guild).", true)
+            end
+        end
+    end)
+end
+
+-- silent=true suppresses the "Enabled!" announcement (used for zoning / instance transitions)
+local function StartAutoUpdate(silent)
+    local desiredInterval = (GuildNotesUpdaterDB and GuildNotesUpdaterDB.autoUpdateInterval or defaultSettings.autoUpdateInterval) * 60
+
+    -- If we already have an active ticker at the correct interval, avoid restarting.
+    -- This prevents chat spam when zoning / hearthstoning.
+    if autoUpdateTimer and autoUpdateIntervalSeconds == desiredInterval and autoUpdateState == "running" then
+        -- Still respect pause-in-instances: if we zoned into an instance, stop + mark paused.
+        if GuildNotesUpdaterDB.pauseInInstances and IsInAnyInstance() then
+            local wasPaused = (autoUpdateState == "paused")
+            StopAutoUpdate()
+            autoUpdateState = "paused"
+            if not wasPaused then
+                GNU_Print("|cff00ff00[GuildNotesUpdater]|r Auto-Update paused in instance.")
+            end
+        end
+        return
+    end
+
+    -- Restart path
     StopAutoUpdate()
 
     -- Guild required for any auto-update functionality
     if not IsInGuild() then
-        if GuildNotesUpdaterDB.autoUpdateEnabled then
-            GuildNotesUpdaterDB.autoUpdateEnabled = false
+        -- During zoning, guild data can be unavailable for a moment.
+        -- Do NOT flip the saved toggle off here (that would look like it "forgot" your choice).
+        -- If you truly leave the guild, PLAYER_GUILD_UPDATE will confirm and force-disable.
+        if GuildNotesUpdaterDB and GuildNotesUpdaterDB.autoUpdateEnabled and not guildUnguildedConfirmed then
+            C_Timer.After(2.0, function()
+                if GuildNotesUpdaterDB and GuildNotesUpdaterDB.autoUpdateEnabled then
+                    StartAutoUpdate(true)
+                end
+            end)
         end
-        GNU_Print("|cffff0000[GuildNotesUpdater]|r Auto-Update requires being in a guild.")
+        autoUpdateState = "stopped"
         return
     end
 
+    -- We have guild info again
+    guildUnguildedConfirmed = false
+
     if not GuildNotesUpdaterDB.autoUpdateEnabled then
-        GNU_Print("|cffff0000[GuildNotesUpdater]|r Auto-Update Disabled.")
+        autoUpdateState = "stopped"
+        if not silent then
+            GNU_Print("|cffff0000[GuildNotesUpdater]|r Auto-Update Disabled.")
+        end
         return
     end
 
     -- If we're configured to pause in instances and currently in one, don't start the ticker yet
     if GuildNotesUpdaterDB.pauseInInstances and IsInAnyInstance() then
-        GNU_Print("|cff00ff00[GuildNotesUpdater]|r Auto-Update paused in instance.")
+        local wasPaused = (autoUpdateState == "paused")
+        autoUpdateState = "paused"
+        if not wasPaused then
+            GNU_Print("|cff00ff00[GuildNotesUpdater]|r Auto-Update paused in instance.")
+        end
         return
     end
 
-    GNU_Print("|cff00ff00[GuildNotesUpdater]|r Auto-Update Enabled! Checking every " .. GuildNotesUpdaterDB.autoUpdateInterval .. " minutes.")
+    -- Start ticker
+    autoUpdateIntervalSeconds = desiredInterval
+    autoUpdateState = "running"
+    if not silent then
+        GNU_Print("|cff00ff00[GuildNotesUpdater]|r Auto-Update Enabled! Checking every " .. GuildNotesUpdaterDB.autoUpdateInterval .. " minutes.")
+    end
 
-    autoUpdateTimer = C_Timer.NewTicker(GuildNotesUpdaterDB.autoUpdateInterval * 60, function()
+    autoUpdateTimer = C_Timer.NewTicker(desiredInterval, function()
         -- Avoid work if we zone into an instance mid-tick
         if GuildNotesUpdaterDB.pauseInInstances and IsInAnyInstance() then
             return
@@ -334,11 +399,14 @@ runBtn:HookScript("OnLeave", function() GameTooltip:Hide() end)
         local inGuild = IsInGuild()
 
         if not inGuild then
-            -- Force-disable auto update when leaving a guild
-            if GuildNotesUpdaterDB.autoUpdateEnabled then
+            -- IsInGuild() can briefly be false while zoning/loading.
+            -- Only flip the saved setting OFF once we've confirmed the player is truly unguilded.
+            if guildUnguildedConfirmed and GuildNotesUpdaterDB.autoUpdateEnabled then
                 GuildNotesUpdaterDB.autoUpdateEnabled = false
-                StopAutoUpdate()
             end
+
+            -- Always stop any running ticker while we don't have a valid guild context
+            StopAutoUpdate()
 
             autoCheck:SetChecked(false)
             autoCheck:Disable()
@@ -482,21 +550,29 @@ elseif msg == "run" or msg == "now" then
         end
 
     elseif event == "PLAYER_GUILD_UPDATE" then
-        -- If we become unguilded, force-disable auto-update and stop any ticker
-        if not IsInGuild() and GuildNotesUpdaterDB.autoUpdateEnabled then
-            GuildNotesUpdaterDB.autoUpdateEnabled = false
-            StopAutoUpdate()
-            GNU_Print("|cffff0000[GuildNotesUpdater]|r Auto-Update disabled (not in a guild).", true)
-        end
-
-    elseif event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA" then
-        if GuildNotesUpdaterDB.autoUpdateEnabled then
-            if GuildNotesUpdaterDB.pauseInInstances and IsInAnyInstance() then
-                StopAutoUpdate()
-                GNU_Print("|cff00ff00[GuildNotesUpdater]|r Auto-Update paused in instance.")
-            else
-                StartAutoUpdate()
+        if not IsInGuild() then
+            -- Confirm after a short delay (IsInGuild can be transient during zoning)
+            guildUnguildedConfirmed = false
+            ConfirmUnguilded()
+        else
+            guildUnguildedConfirmed = false
+            if GuildNotesUpdaterDB.autoUpdateEnabled then
+				-- Don't announce on background guild roster refreshes
+				StartAutoUpdate(true)
             end
         end
+
+	elseif event == "PLAYER_ENTERING_WORLD" then
+		if GuildNotesUpdaterDB.autoUpdateEnabled then
+			-- Only announce once per login; subsequent loading screens (hearths/portals) stay silent
+			StartAutoUpdate(hasCompletedInitialLogin)
+		end
+		hasCompletedInitialLogin = true
+
+	elseif event == "ZONE_CHANGED_NEW_AREA" then
+		if GuildNotesUpdaterDB.autoUpdateEnabled then
+			-- Zone/instance transitions should not spam chat
+			StartAutoUpdate(true)
+		end
     end
 end)
