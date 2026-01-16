@@ -5,6 +5,8 @@
 ## X-Wago-ID: L6JDxQGv
 ## Notes: Automatically updates blank guild notes with standard text.
 ## Dependencies: 
+
+## Category: Collections
 ## SavedVariables: GuildNotesUpdaterDB
 ## IconTexture: Interface\AddOns\GuildNotesUpdater\Images\GuildNotesUpdaterLogo.tga
 ## OptionalDeps: LibDataBroker-1.1, LibDBIcon-1.0
@@ -14,3 +16,4 @@ libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
 libs\LibStub\LibStub.lua
 
 GuildNotesUpdater.lua
+
