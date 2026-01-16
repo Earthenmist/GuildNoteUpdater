@@ -1,36 +1,20 @@
-📜 Changelog – Version 1.2.2  
+📜 Changelog – Version 1.2.3  
   
-📅 Release Date: 14-01-2026  
+📅 Release Date: 16-01-2026  
 🎯 Expansion: The War Within / Midnight Pre-Patch  
   
 🛠️ Fixes & Improvements  
-🔕 Auto-Update Chat Spam Fixed  
+🔁 Auto-Update Persistence Fix  
   
-Resolved an issue where “Auto-Update Enabled” messages were repeatedly printed during:
+Fixed an issue where Auto-Update could appear to disable itself during normal play while not in an instance.  
+The auto-update toggle is now fully persistent across login, zoning, and guild roster refreshes.  
+Temporary loss of guild data (e.g. during UI refreshes or transitions) no longer clears or unticks the saved setting.  
   
-Hearthstone usage  
-Zone changes  
-Loading screens  
+🧠 Improved Guild State Handling  
   
-The message now only appears:  
-
-Once per login session  
-When auto-update is manually enabled  
-When the update interval is changed  
-  
-🔒 Guild-Only Auto-Update Enforcement  
-  
-Auto-Update now requires guild membership  
-Auto-update is automatically disabled if the player is not in a guild  
-The Enable Auto-Update checkbox is greyed out while unguilded  
-The Run Now button is also disabled while unguilded  
-Existing settings are preserved and automatically restored once the player rejoins a guild  
-  
-🧠 Improved State Handling  
-  
-Fixed an issue where zoning or hearthstoning could temporarily unset the auto-update toggle  
-Guild status is now validated safely without wiping saved settings during transitions  
-Auto-update restarts silently when appropriate instead of re-announcing  
+Auto-Update will pause safely if the guild context is temporarily unavailable, without modifying saved preferences.  
+When valid guild data returns, auto-update resumes automatically and silently if it was previously enabled.  
+Prevents false “paused” states caused by brief guild API inconsistencies.  
   
 ⚠️ Notes  
   
@@ -38,4 +22,5 @@ Fully compatible with Midnight
 No configuration reset required  
 Safe to update mid-session  
   
-🚀 Thank you for using Guild Notes Updater! If you encounter issues or have feature requests, please share them via our GitHub. 🚀  
+🚀 Thank you for using Guild Notes Updater!  
+If you encounter issues or have feature requests, please share them via GitHub.  
