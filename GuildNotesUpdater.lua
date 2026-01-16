@@ -41,6 +41,19 @@ local function IsInAnyInstance()
     return instanceType == "party" or instanceType == "raid" or instanceType == "pvp" or instanceType == "arena" or instanceType == "scenario"
 end
 
+-- IsInGuild() can briefly return false while zoning/loading or before guild data is available.
+-- Use a slightly more reliable check for UI gating / auto-update persistence.
+local function HasGuildContext()
+    if IsInGuild() then return true end
+    if GetGuildInfo then
+        local gname = GetGuildInfo("player")
+        if gname and gname ~= "" then
+            return true
+        end
+    end
+    return false
+end
+
 -- Centralized print that respects mute rules
 local function GNU_Print(msg, force)
     if force then
@@ -63,7 +76,7 @@ local function UpdateGuildNotes()
         return -- silently skip while in instances (no chat spam)
     end
 
-    if not IsInGuild() then
+    if not HasGuildContext() then
         GNU_Print("|cff00ff00[GuildNotesUpdater]|r You are not in a guild.")
         return
     end
@@ -130,14 +143,13 @@ end
 
 local function ConfirmUnguilded()
     C_Timer.After(2.0, function()
-        if not IsInGuild() then
+        if not HasGuildContext() then
             guildUnguildedConfirmed = true
-            -- If the user had auto-update enabled, force-disable once we are sure.
-            if GuildNotesUpdaterDB and GuildNotesUpdaterDB.autoUpdateEnabled then
-                GuildNotesUpdaterDB.autoUpdateEnabled = false
-                StopAutoUpdate()
-                GNU_Print("|cffff0000[GuildNotesUpdater]|r Auto-Update disabled (not in a guild).", true)
-            end
+            -- Do NOT flip the saved toggle off here.
+            -- Guild context can be transient during loading; flipping this makes it look like the addon "forgot".
+            -- Instead, just stop any running ticker until guild context is available again.
+            StopAutoUpdate()
+            GNU_Print("|cffff0000[GuildNotesUpdater]|r Auto-Update paused (no guild).", true)
         end
     end)
 end
@@ -165,7 +177,7 @@ local function StartAutoUpdate(silent)
     StopAutoUpdate()
 
     -- Guild required for any auto-update functionality
-    if not IsInGuild() then
+    if not HasGuildContext() then
         -- During zoning, guild data can be unavailable for a moment.
         -- Do NOT flip the saved toggle off here (that would look like it "forgot" your choice).
         -- If you truly leave the guild, PLAYER_GUILD_UPDATE will confirm and force-disable.
@@ -230,7 +242,7 @@ local function RunGuildNotesManual()
         return
     end
 
-    if not IsInGuild() then
+    if not HasGuildContext() then
         GNU_Print("|cffff0000[GuildNotesUpdater]|r You are not in a guild.", true)
         return
     end
@@ -396,27 +408,35 @@ runBtn:HookScript("OnLeave", function() GameTooltip:Hide() end)
 
     -- Guild-gated controls (Auto-Update + Run Now)
     local function RefreshGuildLock()
-        local inGuild = IsInGuild()
+        local inGuild = HasGuildContext()
 
         if not inGuild then
-            -- IsInGuild() can briefly be false while zoning/loading.
-            -- Only flip the saved setting OFF once we've confirmed the player is truly unguilded.
-            if guildUnguildedConfirmed and GuildNotesUpdaterDB.autoUpdateEnabled then
-                GuildNotesUpdaterDB.autoUpdateEnabled = false
+            -- Guild context may be temporarily unavailable while zoning/loading.
+            -- Do NOT untick or flip the saved setting unless we've confirmed the player is truly unguilded.
+            if guildUnguildedConfirmed then
+                StopAutoUpdate()
+
+                autoCheck:SetChecked(GuildNotesUpdaterDB.autoUpdateEnabled)
+                autoCheck:Disable()
+                if autoCheck.text then
+                    autoCheck.text:SetText("Enable Auto-Update (requires guild)")
+                end
+                autoCheck.text:SetTextColor(0.6, 0.6, 0.6)
+
+                runBtn:Disable()
+                runBtn:SetAlpha(0.5)
+            else
+                -- Transient state: keep UI reflecting the saved choice and avoid stopping the ticker.
+                autoCheck:SetChecked(GuildNotesUpdaterDB.autoUpdateEnabled)
+                autoCheck:Disable()
+                if autoCheck.text then
+                    autoCheck.text:SetText("Enable Auto-Update (loading guild data...)")
+                end
+                autoCheck.text:SetTextColor(0.8, 0.8, 0.8)
+
+                runBtn:Disable()
+                runBtn:SetAlpha(0.5)
             end
-
-            -- Always stop any running ticker while we don't have a valid guild context
-            StopAutoUpdate()
-
-            autoCheck:SetChecked(false)
-            autoCheck:Disable()
-            if autoCheck.text then
-                autoCheck.text:SetText("Enable Auto-Update (requires guild)")
-            end
-            autoCheck.text:SetTextColor(0.6, 0.6, 0.6)
-
-            runBtn:Disable()
-            runBtn:SetAlpha(0.5)
         else
             autoCheck:Enable()
             if autoCheck.text then
@@ -433,8 +453,8 @@ runBtn:HookScript("OnLeave", function() GameTooltip:Hide() end)
     local function RefreshStatus()
         RefreshGuildLock()
 
-        if not IsInGuild() then
-            status:SetText("Status: |cffff4040Not in a guild|r")
+        if not HasGuildContext() then
+            status:SetText(guildUnguildedConfirmed and "Status: |cffff4040Not in a guild|r" or "Status: |cffffff00Loading guild data...|r")
             return
         end
 
