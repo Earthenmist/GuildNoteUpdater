@@ -1,62 +1,71 @@
-📜 Guild Notes Updater - README  
-  
-📌 Overview  
-Guild Notes Updater is a simple World of Warcraft addon that helps guild officers automatically update blank guild notes with a predefined message. Whether you're maintaining public notes or officer notes, this addon makes it easy to keep track of new members and ensure important information is recorded.  
-  
-It includes a customizable UI, a minimap button, and slash commands to make managing guild notes effortless.  
-  
-🔥 Features  
-✅ Automatically fills blank public or officer notes with your custom message.  
-✅ Simple UI to customize the default note and note type (public or officer).  
-✅ Minimap button for quick access to the settings (can be toggled on/off).  
-✅ Tooltip support for better clarity on what the "Update Notes" button does.  
-✅ Right-click minimap button to hide/show it (can be restored via /gnotes minimap).  
-✅ Persistent settings that save across sessions.  
-✅ Supports slash commands for quick access.  
-  
-🎮 How to Use  
-  
-🏠 Opening the Addon Settings  
-You can access the addon settings in multiple ways:  
-  
-Click the minimap button 📜  
-Type /guildnotes or /gnotes in chat  
-✍ Customizing Notes  
-Open the settings window.  
-Enter a default note (e.g., "New recruit - Please update!").  
-Choose whether to update Public or Officer Notes using the checkbox.  
-Click Save to store your settings.  
-  
-⚡ Updating Guild Notes  
-Click the "Update Notes" button.  
-The addon will fill in any blank notes with your preset message.  
-A tooltip on the button will indicate whether you're updating Public or Officer Notes.  
-  
-🗺 Minimap Button  
-Left-click opens the settings.  
-Right-click toggles the minimap button on/off.  
-If hidden, type /gnotes minimap to restore it.  
-  
-💻 Slash Commands  
-Command	Function  
-/guildnotes or /gnotes	Opens the settings window.  
-/gnotes minimap	Toggles the minimap button on/off.  
-  
-🔄 Installation  
-Download the addon.  
-Extract the folder into your WoW AddOns directory:  
+# Guild Notes Updater
 
-World of Warcraft/_retail_/Interface/AddOns/GuildNotesUpdater/  
-  
-Restart WoW or type /reload in-game.  
-  
-🛠 Troubleshooting  
-Minimap button is missing? Type /gnotes minimap to restore it.  
-Addon not working? Ensure you have permission to edit notes in your guild.  
-Still having issues? Try /reload or reinstalling the addon. 
-  
-🎉 Credits  
-Created by Lanni Alonsus  
-Libraries used: LibDataBroker, LibDBIcon  
+**Guild Notes Updater** is a simple World of Warcraft addon that helps guild officers automatically fill **blank guild notes** with a predefined message.
 
-🚀 Now keeping guild notes organized is easier than ever! Let me know if you need any tweaks. 🔥🔥🔥
+It supports both **Public Notes** and **Officer Notes**, includes a small configuration UI, and provides a minimap button + slash commands for quick access.
+
+## ✨ Features
+- Automatically fills blank **Public** or **Officer** notes with your custom message
+- Simple UI to configure:
+  - Default note text
+  - Note type (Public or Officer)
+- Minimap button for quick access (can be toggled on/off)
+- Tooltip support for clarity on what the **Update Notes** button will change
+- Right-click minimap button to hide/show it (can be restored via `/gnotes minimap`)
+- Persistent saved settings between sessions
+- Slash commands for quick access
+
+## 🗺️ How to Use
+### Opening the Addon Settings
+You can open the settings window by:
+- Clicking the minimap button
+- Typing `/guildnotes` or `/gnotes`
+
+### Customising Notes
+1. Open the settings window
+2. Enter a default note (example: `New recruit - Please update!`)
+3. Choose whether to update **Public** or **Officer** Notes
+4. Click **Save**
+
+### Updating Guild Notes
+1. Click the **Update Notes** button
+2. The addon will fill in any blank notes with your preset message
+3. The tooltip will show whether you're updating Public or Officer Notes
+
+### Minimap Button
+- Left-click: open settings
+- Right-click: toggle minimap button visibility
+- If hidden: use `/gnotes minimap` to restore it
+
+## 💬 Slash Commands
+| Command | Function |
+|--------|----------|
+| `/guildnotes` or `/gnotes` | Opens the settings window |
+| `/gnotes minimap` | Toggles the minimap button on/off |
+
+## 📦 Install
+### CurseForge
+- Install via the CurseForge app or download the latest release.
+
+### Manual
+1. Download the latest release `.zip`.
+2. Extract into: `World of Warcraft/_retail_/Interface/AddOns/`
+3. Ensure the folder name is `GuildNotesUpdater` (not nested).
+4. Relaunch the game.
+
+## 🧩 Compatibility
+- **Game:** Retail
+- **Dependencies:** LibDataBroker, LibDBIcon (embedded)
+
+## 💬 Support & Community
+For bug reports, feature requests, release notes, and beta builds, join the official Discord:
+
+**LanniOfAlonsus • Addon Hub**  
+https://discord.gg/U8mKfHpeeP
+
+## 📜 License
+All Rights Reserved.
+
+## ❤️ Credits
+- **Author:** LanniOfAlonsus  
+- Libraries: LibDataBroker, LibDBIcon
