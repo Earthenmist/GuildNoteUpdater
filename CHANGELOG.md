@@ -1,6 +1,6 @@
 ## :jigsaw: Addon Updates (2026-02-09)
 
-**Guild Notes Updater** — v1.2.4  
+**Guild Notes Updater** — v1.2.5  
 
 **Changes:**  
 • Release packaging update (standardised changelog + cleaner zip output).  
