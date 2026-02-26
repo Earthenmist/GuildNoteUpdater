@@ -1,9 +1,9 @@
-## 🧩 Addon Updates (2026-02-09)
+## 🧩 Addon Updates (2026-02-26)
 
-**Guild Notes Updater** — v1.2.5  
+**Guild Notes Updater** — v1.2.6  
 
 **Changes:**  
-• Release packaging update (standardised changelog + cleaner zip output).  
+• Added Addon Compartment support (always available, even if the minimap icon is hidden).  
 
 **Fixes:**  
 • None.

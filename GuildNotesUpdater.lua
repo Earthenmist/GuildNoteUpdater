@@ -475,6 +475,41 @@ local function OpenOptions()
 end
 
 -- ================================
+-- Addon Compartment (Retail)
+-- ================================
+-- Register a compartment entry that is NOT tied to the minimap icon hide/show state.
+-- Left click opens settings. (No right-click behavior here.)
+local compartmentRegistered = false
+local function RegisterAddonCompartment()
+    if compartmentRegistered then return end
+    if not AddonCompartmentFrame or not AddonCompartmentFrame.RegisterAddon then
+        return
+    end
+
+    compartmentRegistered = true
+    AddonCompartmentFrame:RegisterAddon({
+        text = "Guild Notes Updater",
+        icon = "Interface\\Icons\\INV_Scroll_11",
+        notCheckable = true,
+        func = function()
+            OpenOptions()
+        end,
+        funcOnEnter = function(button)
+            if not button then return end
+            GameTooltip:SetOwner(button, "ANCHOR_RIGHT")
+            GameTooltip:AddLine("Guild Notes Updater")
+            GameTooltip:AddLine("Left Click: Open Settings", 1, 1, 1)
+            GameTooltip:Show()
+        end,
+        funcOnLeave = function()
+            if GameTooltip and GameTooltip:IsShown() then
+                GameTooltip:Hide()
+            end
+        end,
+    })
+end
+
+-- ================================
 -- Minimap button (LDB / DBIcon)
 -- ================================
 LDB = LibStub and LibStub:GetLibrary("LibDataBroker-1.1", true)
@@ -516,6 +551,9 @@ frame:RegisterEvent("PLAYER_GUILD_UPDATE")   -- detect guild join/leave changes
 frame:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 == addonName then
         EnsureSavedVariables()
+
+        -- Always register in the Addon Compartment (independent from minimap icon visibility)
+        RegisterAddonCompartment()
 
         if LDBIcon and GuildNotesUpdaterLDB then
             LDBIcon:Register("GuildNotesUpdater", GuildNotesUpdaterLDB, GuildNotesUpdaterDB.minimap)

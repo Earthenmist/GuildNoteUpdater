@@ -1,7 +1,7 @@
 ## Interface: 120000, 120001
 ## Title: Guild Notes Updater
 ## Author: Lanni Alonsus
-## Version: 1.2.5
+## Version: 1.2.6
 ## X-Curse-Project-ID: 1198284
 ## X-Wago-ID: L6JDxQGv
 ## Notes: Automatically updates blank guild notes with standard text.
